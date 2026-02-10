@@ -62,8 +62,18 @@ export const authAPI = {
   register: (data: RegisterRequest) => api.post<User>('/auth/register/', data),
   getProfile: () => api.get<User>('/auth/profile/'),
   updateProfile: (data: Partial<User>) => api.patch<User>('/auth/profile/', data),
+  getStudentProfile: () => api.get('/auth/profile/student/'),
+  updateStudentProfile: (data: any) => api.patch('/auth/profile/student/', data),
+  getCheckerProfile: () => api.get('/auth/profile/checker/'),
+  updateCheckerProfile: (data: any) => api.patch('/auth/profile/checker/', data),
   changePassword: (oldPassword: string, newPassword: string) =>
     api.post('/auth/change-password/', { old_password: oldPassword, new_password: newPassword }),
+  listUsers: (role?: string) => api.get('/auth/users/', { params: { role } }),
+  createUser: (data: any) => api.post('/auth/users/', data),
+  listRoles: () => api.get('/auth/roles/'),
+  listPermissions: () => api.get('/auth/permissions/'),
+  listRolePermissions: () => api.get('/auth/role-permissions/'),
+  createRolePermission: (data: any) => api.post('/auth/role-permissions/', data),
 };
 
 // Applications API
@@ -110,4 +120,46 @@ export const notificationsAPI = {
   markRead: (ids: number[]) => api.post('/notifications/mark-read/', { notification_ids: ids }),
   markAllRead: () => api.post('/notifications/mark-all-read/'),
   unreadCount: () => api.get('/notifications/unread-count/'),
+};
+
+// Messaging API
+export const messagingAPI = {
+  list: () => api.get('/messages/'),
+  get: (id: number) => api.get(`/messages/${id}/`),
+  create: (data: any) => api.post('/messages/', data),
+  markRead: (id: number) => api.patch(`/messages/${id}/`, { is_read: true }),
+};
+
+// Universities API
+export const universitiesAPI = {
+  list: () => api.get('/universities/universities/'),
+  programs: (universityId?: number) =>
+    api.get('/universities/programs/', { params: { university_id: universityId } }),
+};
+
+// QS Rankings API
+export const qsAPI = {
+  list: (year?: number, countryId?: number) =>
+    api.get('/qs/', { params: { year, country_id: countryId } }),
+};
+
+// Countries API
+export const countriesAPI = {
+  list: () => api.get('/countries/'),
+};
+
+// Analytics API (Admin)
+export const analyticsAPI = {
+  daily: () => api.get('/analytics/daily/'),
+};
+
+// Audit API (Admin)
+export const auditAPI = {
+  logs: () => api.get('/audit/logs/'),
+  events: () => api.get('/audit/events/'),
+  features: () => api.get('/audit/features/'),
+  updateFeature: (id: number, data: any) => api.patch(`/audit/features/${id}/`, data),
+  settings: () => api.get('/audit/settings/'),
+  updateSetting: (id: number, data: any) => api.patch(`/audit/settings/${id}/`, data),
+  createSetting: (data: any) => api.post('/audit/settings/', data),
 };

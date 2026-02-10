@@ -1,5 +1,6 @@
 from django.db import models
-from apps.accounts.models import User
+from apps.accounts.models import User, UserRole
+from apps.universities.models import Program
 
 
 class ApplicationStatus(models.TextChoices):
@@ -28,7 +29,15 @@ class Application(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='applications',
-        limit_choices_to={'role': 'STUDENT'}
+        limit_choices_to={'role__code': UserRole.STUDENT}
+    )
+
+    program = models.ForeignKey(
+        Program,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='applications'
     )
     
     # Application Details
@@ -55,7 +64,7 @@ class Application(models.Model):
         null=True,
         blank=True,
         related_name='assigned_applications',
-        limit_choices_to={'role': 'CHECKER'}
+        limit_choices_to={'role__code': UserRole.CHECKER}
     )
     
     # Timestamps
@@ -124,3 +133,31 @@ class ApplicationTimeline(models.Model):
     
     def __str__(self):
         return f"{self.application.id} - {self.event_type} - {self.created_at}"
+
+
+class ApplicationStatusHistory(models.Model):
+    """Explicit status history for applications"""
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='status_history'
+    )
+
+    from_status = models.CharField(max_length=30)
+    to_status = models.CharField(max_length=30)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    note = models.TextField(blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'application_status_history'
+        ordering = ['-changed_at']
+        indexes = [
+            models.Index(fields=['application']),
+            models.Index(fields=['changed_by']),
+            models.Index(fields=['changed_at']),
+        ]
+
+    def __str__(self):
+        return f"Application {self.application_id}: {self.from_status} -> {self.to_status}"

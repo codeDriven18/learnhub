@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.utils import timezone
-from .models import Application, ApplicationTimeline, ApplicationStatus
+from .models import Application, ApplicationTimeline, ApplicationStatus, ApplicationStatusHistory
 from .serializers import (
     ApplicationListSerializer, ApplicationDetailSerializer,
     ApplicationCreateSerializer, ApplicationUpdateSerializer,
@@ -101,6 +101,14 @@ class ApplicationSubmitView(APIView):
         application.status = ApplicationStatus.SUBMITTED
         application.submitted_at = timezone.now()
         application.save()
+
+        ApplicationStatusHistory.objects.create(
+            application=application,
+            from_status=old_status,
+            to_status=application.status,
+            changed_by=request.user,
+            note='Application submitted'
+        )
         
         # Create timeline event
         ApplicationTimeline.objects.create(
@@ -147,7 +155,7 @@ class ApplicationAssignView(APIView):
         
         from apps.accounts.models import User, UserRole
         try:
-            checker = User.objects.get(pk=checker_id, role=UserRole.CHECKER)
+            checker = User.objects.get(pk=checker_id, role__code=UserRole.CHECKER)
         except User.DoesNotExist:
             return Response({'error': 'Checker not found'}, status=status.HTTP_404_NOT_FOUND)
         
@@ -155,6 +163,14 @@ class ApplicationAssignView(APIView):
         application.status = ApplicationStatus.UNDER_REVIEW
         application.review_started_at = timezone.now()
         application.save()
+
+        ApplicationStatusHistory.objects.create(
+            application=application,
+            from_status=ApplicationStatus.SUBMITTED,
+            to_status=application.status,
+            changed_by=request.user,
+            note='Application assigned to checker'
+        )
         
         # Create timeline event
         ApplicationTimeline.objects.create(
@@ -198,6 +214,14 @@ class ApplicationStatusView(APIView):
         if serializer.is_valid():
             old_status = application.status
             application = serializer.save()
+
+            ApplicationStatusHistory.objects.create(
+                application=application,
+                from_status=old_status,
+                to_status=application.status,
+                changed_by=request.user,
+                note='Status updated'
+            )
             
             # Create timeline event
             ApplicationTimeline.objects.create(

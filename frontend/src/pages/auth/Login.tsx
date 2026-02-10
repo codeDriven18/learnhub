@@ -15,7 +15,11 @@ export default function Login() {
     onSuccess: async (response) => {
       const { access, refresh } = response.data;
       
-      // Get user profile
+      // Set tokens in localStorage first so axios interceptor can use them
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      
+      // Now get user profile with token in headers
       const profileResponse = await authAPI.getProfile();
       const user = profileResponse.data;
       

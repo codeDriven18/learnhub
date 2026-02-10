@@ -8,7 +8,7 @@ from .serializers import (
     ReviewCreateSerializer, ReviewUpdateSerializer,
     ReviewTagSerializer, DocumentReviewSerializer
 )
-from apps.applications.models import Application, ApplicationStatus
+from apps.applications.models import Application, ApplicationStatus, ApplicationStatusHistory
 from apps.notifications.utils import create_notification
 from apps.notifications.models import NotificationType
 
@@ -114,6 +114,14 @@ class ReviewSubmitView(APIView):
         
         application.review_completed_at = timezone.now()
         application.save()
+
+        ApplicationStatusHistory.objects.create(
+            application=application,
+            from_status=ApplicationStatus.UNDER_REVIEW,
+            to_status=application.status,
+            changed_by=request.user,
+            note='Review submitted'
+        )
         
         # Update checker stats
         if hasattr(request.user, 'checker_profile'):

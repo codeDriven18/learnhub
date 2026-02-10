@@ -1,6 +1,6 @@
 from django.db import models
 from apps.applications.models import Application
-from apps.accounts.models import User
+from apps.accounts.models import User, UserRole
 
 
 class ReviewDecision(models.TextChoices):
@@ -36,7 +36,7 @@ class Review(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='conducted_reviews',
-        limit_choices_to={'role': 'CHECKER'}
+        limit_choices_to={'role__code': UserRole.CHECKER}
     )
     
     # Review Content

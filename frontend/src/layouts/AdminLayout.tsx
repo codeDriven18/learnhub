@@ -1,9 +1,15 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import ThemeToggle from '@/components/ThemeToggle';
 import {
   HomeIcon,
   DocumentTextIcon,
   UsersIcon,
+  ChartBarIcon,
+  ListBulletIcon,
+  ShieldCheckIcon,
+  Squares2X2Icon,
+  BoltIcon,
   BellIcon,
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
@@ -22,12 +28,17 @@ export default function AdminLayout() {
     { name: 'Dashboard', href: '/admin', icon: HomeIcon },
     { name: 'Applications', href: '/admin/applications', icon: DocumentTextIcon },
     { name: 'Users', href: '/admin/users', icon: UsersIcon },
+    { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
+    { name: 'Logs', href: '/admin/logs', icon: ListBulletIcon },
+    { name: 'System Events', href: '/admin/system-events', icon: BoltIcon },
+    { name: 'Permissions', href: '/admin/permissions', icon: ShieldCheckIcon },
+    { name: 'Feature Control', href: '/admin/features', icon: Squares2X2Icon },
     { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <nav className="bg-gray-900 dark:bg-gray-950 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -49,6 +60,7 @@ export default function AdminLayout() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <button className="p-2 text-gray-300 hover:text-white">
                 <BellIcon className="h-6 w-6" />
               </button>

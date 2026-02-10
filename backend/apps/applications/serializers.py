@@ -22,7 +22,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
-            'id', 'student', 'student_name', 'program_name', 'academic_year',
+            'id', 'student', 'student_name', 'program', 'program_name', 'academic_year',
             'intake_period', 'status', 'status_display', 'current_stage',
             'stage_display', 'assigned_checker', 'checker_name', 'submitted_at',
             'created_at', 'updated_at', 'is_complete', 'requires_attention'
@@ -53,7 +53,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
-            'program_name', 'academic_year', 'intake_period',
+            'program', 'program_name', 'academic_year', 'intake_period',
             'personal_statement', 'additional_info'
         ]
     
@@ -61,6 +61,9 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
         # Set student from request user
         validated_data['student'] = self.context['request'].user
         validated_data['status'] = ApplicationStatus.DRAFT
+        program = validated_data.get('program')
+        if program and not validated_data.get('program_name'):
+            validated_data['program_name'] = program.name
         return super().create(validated_data)
 
 
@@ -70,7 +73,7 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
-            'program_name', 'academic_year', 'intake_period',
+            'program', 'program_name', 'academic_year', 'intake_period',
             'personal_statement', 'additional_info'
         ]
 

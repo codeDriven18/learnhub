@@ -25,7 +25,8 @@ for user in users:
     password = test_passwords.get(user.email, '(unknown)')
     is_admin = 'Yes' if user.is_superuser else 'No'
     full_name = f'{user.first_name} {user.last_name}'
-    print(f'{user.email:<30} {password:<15} {user.role:<10} {full_name:<20} {is_admin}')
+    role_code = user.role.code if user.role else 'UNKNOWN'
+    print(f'{user.email:<30} {password:<15} {role_code:<10} {full_name:<20} {is_admin}')
 
 print(f'\nTotal Users: {users.count()}')
 print('='*80 + '\n')

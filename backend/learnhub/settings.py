@@ -39,6 +39,12 @@ INSTALLED_APPS = [
     'apps.documents',
     'apps.reviews',
     'apps.notifications',
+    'apps.messaging',
+    'apps.universities',
+    'apps.qs',
+    'apps.countries',
+    'apps.analytics',
+    'apps.audit',
 ]
 
 MIDDLEWARE = [

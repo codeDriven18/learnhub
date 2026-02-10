@@ -7,6 +7,7 @@ from .serializers import (
     NotificationSerializer, NotificationCreateSerializer,
     NotificationMarkReadSerializer, EmailTemplateSerializer
 )
+from apps.accounts.permissions import IsAdminRole
 
 
 class NotificationListView(generics.ListAPIView):
@@ -101,13 +102,13 @@ class NotificationUnreadCountView(APIView):
 
 class EmailTemplateListView(generics.ListAPIView):
     """List email templates (admin only)"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminRole]
     serializer_class = EmailTemplateSerializer
     queryset = EmailTemplate.objects.all()
 
 
 class EmailTemplateDetailView(generics.RetrieveUpdateAPIView):
     """Retrieve and update email template (admin only)"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminRole]
     serializer_class = EmailTemplateSerializer
     queryset = EmailTemplate.objects.all()

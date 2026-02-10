@@ -5,11 +5,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from .serializers import (
     RegisterSerializer, UserSerializer, UserDetailSerializer,
-    StudentProfileSerializer, CheckerProfileSerializer, ChangePasswordSerializer
+    StudentProfileSerializer, CheckerProfileSerializer, ChangePasswordSerializer,
+    CustomTokenObtainPairSerializer, AdminUserCreateSerializer,
+    RoleSerializer, PermissionSerializer, RolePermissionSerializer
 )
-from .models import StudentProfile, CheckerProfile
+from .permissions import IsAdminRole
+from .models import StudentProfile, CheckerProfile, Role, Permission, RolePermission
 
 User = get_user_model()
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Custom login view that uses email instead of username"""
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -63,15 +71,37 @@ class ChangePasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserListView(generics.ListAPIView):
-    """List all users (admin only)"""
+class UserListView(generics.ListCreateAPIView):
+    """List and create users (admin only)"""
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
+    permission_classes = [IsAdminRole]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AdminUserCreateSerializer
+        return UserSerializer
+
     def get_queryset(self):
         queryset = super().get_queryset()
         role = self.request.query_params.get('role', None)
         if role:
-            queryset = queryset.filter(role=role)
+            queryset = queryset.filter(role__code=role)
         return queryset
+
+
+class RoleListView(generics.ListCreateAPIView):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsAdminRole]
+
+
+class PermissionListView(generics.ListCreateAPIView):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    permission_classes = [IsAdminRole]
+
+
+class RolePermissionListView(generics.ListCreateAPIView):
+    queryset = RolePermission.objects.select_related('role', 'permission').all()
+    serializer_class = RolePermissionSerializer
+    permission_classes = [IsAdminRole]

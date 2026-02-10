@@ -9,6 +9,56 @@ class UserRole(models.TextChoices):
     ADMIN = 'ADMIN', 'Administrator'
 
 
+class Role(models.Model):
+    """Role registry for RBAC"""
+
+    code = models.CharField(max_length=20, choices=UserRole.choices, unique=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'roles'
+        ordering = ['code']
+
+    def __str__(self):
+        return self.name
+
+
+class Permission(models.Model):
+    """Permission registry"""
+
+    code = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'permissions'
+        ordering = ['code']
+
+    def __str__(self):
+        return self.code
+
+
+class RolePermission(models.Model):
+    """Role to permission mapping"""
+
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name='role_permissions')
+
+    class Meta:
+        db_table = 'role_permissions'
+        unique_together = ['role', 'permission']
+
+    def __str__(self):
+        return f"{self.role.code} -> {self.permission.code}"
+
+
+def get_default_role():
+    role, _ = Role.objects.get_or_create(
+        code=UserRole.STUDENT,
+        defaults={'name': 'Applicant'}
+    )
+    return role
+
+
 class UserManager(BaseUserManager):
     """Custom user manager for email-based authentication"""
     
@@ -16,7 +66,12 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        role = extra_fields.pop('role', None)
+        if role is None:
+            role = get_default_role()
+        elif isinstance(role, str):
+            role, _ = Role.objects.get_or_create(code=role, defaults={'name': role.title()})
+        user = self.model(email=email, role=role, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -40,10 +95,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, db_index=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    role = models.CharField(
-        max_length=10,
-        choices=UserRole.choices,
-        default=UserRole.STUDENT
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.PROTECT,
+        related_name='users',
+        db_column='role_id',
+        null=True,
+        blank=True
     )
     
     is_active = models.BooleanField(default=True)
@@ -63,20 +121,26 @@ class User(AbstractBaseUser, PermissionsMixin):
         ordering = ['-date_joined']
     
     def __str__(self):
-        return f"{self.email} ({self.get_role_display()})"
+        role_code = self.role.code if self.role else 'UNKNOWN'
+        return f"{self.email} ({role_code})"
     
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
     
     def is_student(self):
-        return self.role == UserRole.STUDENT
+        return bool(self.role and self.role.code == UserRole.STUDENT)
     
     def is_checker(self):
-        return self.role == UserRole.CHECKER
+        return bool(self.role and self.role.code == UserRole.CHECKER)
     
     def is_admin(self):
-        return self.role == UserRole.ADMIN
+        return bool(self.role and self.role.code == UserRole.ADMIN)
+
+    def save(self, *args, **kwargs):
+        if self.role_id is None:
+            self.role = get_default_role()
+        super().save(*args, **kwargs)
 
 
 class StudentProfile(models.Model):
