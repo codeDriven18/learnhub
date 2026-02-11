@@ -178,6 +178,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://students.learnhub.com',
     'http://checkers.learnhub.com',
     'http://admin.learnhub.com',
+    "https://agent-698bef9e33c276a6a8f23a3d--learnhubq.netlify.app",
     # "https://learnhub-4zry.netlify.app",  # your frontend Netlify URL
     "https://learnhubq.netlify.app",  
 ]
