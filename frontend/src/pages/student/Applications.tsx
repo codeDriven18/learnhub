@@ -37,7 +37,9 @@ export default function StudentApplications() {
         additional_info: '',
       });
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Failed to create'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create');
+    },
   });
 
   const submitMutation = useMutation((id: number) => applicationsAPI.submit(id), {
@@ -45,7 +47,9 @@ export default function StudentApplications() {
       toast.success('Application submitted');
       queryClient.invalidateQueries('student-applications');
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Submit failed'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Submit failed');
+    },
   });
 
   const deleteMutation = useMutation((id: number) => applicationsAPI.delete(id), {

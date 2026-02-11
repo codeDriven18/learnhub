@@ -308,7 +308,7 @@ export default function CheckerDashboard() {
             </div>
             <div className="space-y-4">
               {displayApplications.length ? (
-                displayApplications.map((app) => (
+                displayApplications.map((app: any) => (
                 <div
                   key={app.id}
                   className="border dark:border-gray-700 rounded-lg p-5 hover:shadow-md transition-shadow"

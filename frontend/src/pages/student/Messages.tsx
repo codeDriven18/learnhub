@@ -19,7 +19,9 @@ export default function StudentMessages() {
       setSubject('');
       setBody('');
     },
-    onError: (error: any) => toast.error(error.response?.data?.detail || 'Send failed'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Send failed');
+    },
   });
 
   return (

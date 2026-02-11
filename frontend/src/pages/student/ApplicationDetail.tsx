@@ -68,7 +68,9 @@ export default function StudentApplicationDetail() {
       toast.success('Application submitted');
       queryClient.invalidateQueries(['application', id]);
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Submit failed'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Submit failed');
+    },
   });
 
   const handleUpload = () => {

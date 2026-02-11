@@ -21,7 +21,9 @@ export default function AdminUsers() {
       queryClient.invalidateQueries('admin-users');
       setFormData({ email: '', password: '', first_name: '', last_name: '', role: 'STUDENT' });
     },
-    onError: (error: any) => toast.error(error.response?.data?.detail || 'Create failed'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Create failed');
+    },
   });
 
   const handleCreate = () => {
