@@ -174,6 +174,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:3003',
+    'https://learnhub-4zry.netlify.app',
     'http://students.learnhub.com',
     'http://checkers.learnhub.com',
     'http://admin.learnhub.com',
