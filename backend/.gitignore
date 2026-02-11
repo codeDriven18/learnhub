@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+.sqlite3
 build/
 develop-eggs/
 dist/

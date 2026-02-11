@@ -7,6 +7,8 @@ class DocumentSerializer(serializers.ModelSerializer):
     document_type_display = serializers.CharField(source='get_document_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     verified_by_name = serializers.CharField(source='verified_by.full_name', read_only=True, allow_null=True)
+    uploaded_by_name = serializers.CharField(source='uploaded_by.full_name', read_only=True, allow_null=True)
+    file_url = serializers.SerializerMethodField()
     file_extension = serializers.CharField(read_only=True)
     is_verified = serializers.BooleanField(read_only=True)
     
@@ -15,8 +17,15 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = [
             'file_name', 'file_size', 'mime_type', 'uploaded_at', 'updated_at',
-            'status', 'verified_by', 'verified_at', 'verification_notes'
+            'status', 'verified_by', 'verified_at', 'verification_notes', 'uploaded_by'
         ]
+
+    def get_file_url(self, obj):
+        request = self.context.get('request')
+        if not obj.file:
+            return None
+        url = obj.file.url
+        return request.build_absolute_uri(url) if request else url
     
     def create(self, validated_data):
         # Extract file metadata

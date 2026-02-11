@@ -68,6 +68,18 @@ export const authAPI = {
   updateCheckerProfile: (data: any) => api.patch('/auth/profile/checker/', data),
   changePassword: (oldPassword: string, newPassword: string) =>
     api.post('/auth/change-password/', { old_password: oldPassword, new_password: newPassword }),
+  changeEmail: (newEmail: string, password: string) =>
+    api.post('/auth/change-email/', { new_email: newEmail, password }),
+  uploadProfilePhoto: (data: FormData) =>
+    api.patch('/auth/profile/photo/', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getPreferences: () => api.get('/auth/preferences/'),
+  updatePreferences: (data: any) => api.patch('/auth/preferences/', data),
+  listSessions: () => api.get('/auth/sessions/'),
+  revokeSession: (sessionId: string) => api.post(`/auth/sessions/revoke/${sessionId}/`),
+  revokeOtherSessions: (currentSessionId?: string) =>
+    api.post('/auth/sessions/revoke-others/', { current_session_id: currentSessionId }),
   listUsers: (role?: string) => api.get('/auth/users/', { params: { role } }),
   createUser: (data: any) => api.post('/auth/users/', data),
   listRoles: () => api.get('/auth/roles/'),

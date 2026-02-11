@@ -1,16 +1,19 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, parsers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from .serializers import (
     RegisterSerializer, UserSerializer, UserDetailSerializer,
     StudentProfileSerializer, CheckerProfileSerializer, ChangePasswordSerializer,
     CustomTokenObtainPairSerializer, AdminUserCreateSerializer,
-    RoleSerializer, PermissionSerializer, RolePermissionSerializer
+    RoleSerializer, PermissionSerializer, RolePermissionSerializer,
+    UserPreferenceSerializer, ProfilePhotoSerializer, ChangeEmailSerializer,
+    UserSessionSerializer, CustomTokenRefreshSerializer
 )
 from .permissions import IsAdminRole
-from .models import StudentProfile, CheckerProfile, Role, Permission, RolePermission
+from .models import StudentProfile, CheckerProfile, Role, Permission, RolePermission, UserPreference, UserSession
 
 User = get_user_model()
 
@@ -18,6 +21,10 @@ User = get_user_model()
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Custom login view that uses email instead of username"""
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -69,6 +76,68 @@ class ChangePasswordView(APIView):
             request.user.save()
             return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangeEmailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangeEmailSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            request.user.email = serializer.validated_data['new_email']
+            request.user.save(update_fields=['email'])
+            return Response({'message': 'Email updated successfully'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfilePhotoView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProfilePhotoSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def get_object(self):
+        return self.request.user
+
+
+class UserPreferenceView(generics.RetrieveUpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserPreferenceSerializer
+
+    def get_object(self):
+        preferences, _ = UserPreference.objects.get_or_create(user=self.request.user)
+        return preferences
+
+
+class UserSessionListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSessionSerializer
+
+    def get_queryset(self):
+        return UserSession.objects.filter(user=self.request.user)
+
+
+class UserSessionRevokeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, session_id):
+        session = get_object_or_404(UserSession, id=session_id, user=request.user)
+        session.revoke()
+        return Response({'message': 'Session revoked'}, status=status.HTTP_200_OK)
+
+
+class UserSessionRevokeOthersView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        current_session_id = request.data.get('current_session_id')
+        sessions = UserSession.objects.filter(user=request.user, is_active=True)
+        if current_session_id:
+            sessions = sessions.exclude(id=current_session_id)
+        count = 0
+        for session in sessions:
+            session.revoke()
+            count += 1
+        return Response({'message': f'Revoked {count} sessions'}, status=status.HTTP_200_OK)
 
 
 class UserListView(generics.ListCreateAPIView):

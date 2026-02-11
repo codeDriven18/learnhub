@@ -1,7 +1,13 @@
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.contrib.auth import get_user_model
-from .models import StudentProfile, CheckerProfile, UserRole, Role, Permission, RolePermission
+from .models import (
+    StudentProfile, CheckerProfile, UserRole, Role, Permission, RolePermission,
+    UserPreference, UserSession
+)
 
 User = get_user_model()
 
@@ -10,16 +16,64 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT serializer that uses email instead of username"""
     username_field = 'email'
 
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        refresh = RefreshToken(data['refresh'])
+        request = self.context.get('request')
+        user_agent = request.META.get('HTTP_USER_AGENT', '') if request else ''
+        ip_address = ''
+        if request:
+            xff = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip_address = (xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', ''))
+
+        session = UserSession.objects.create(
+            user=self.user,
+            refresh_jti=refresh['jti'],
+            user_agent=user_agent,
+            ip_address=ip_address,
+            device_label=request.META.get('HTTP_SEC_CH_UA', '') if request else '',
+        )
+
+        data['session_id'] = str(session.id)
+        return data
+
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        refresh = RefreshToken(attrs['refresh'])
+        try:
+            session = UserSession.objects.get(refresh_jti=refresh['jti'])
+        except UserSession.DoesNotExist:
+            return data
+
+        session.last_seen_at = timezone.now()
+        session.save(update_fields=['last_seen_at'])
+        return data
+
 
 class UserSerializer(serializers.ModelSerializer):
     """Basic user serializer"""
     full_name = serializers.CharField(read_only=True)
     role = serializers.CharField(source='role.code', read_only=True)
+    profile_photo_url = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'role', 'is_verified', 'date_joined']
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'full_name', 'role',
+            'profile_photo', 'profile_photo_url', 'is_verified', 'date_joined'
+        ]
         read_only_fields = ['id', 'date_joined', 'is_verified']
+
+    def get_profile_photo_url(self, obj):
+        request = self.context.get('request')
+        if not obj.profile_photo:
+            return None
+        url = obj.profile_photo.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -122,15 +176,70 @@ class UserDetailSerializer(serializers.ModelSerializer):
     checker_profile = CheckerProfileSerializer(read_only=True)
     full_name = serializers.CharField(read_only=True)
     role = serializers.CharField(source='role.code', read_only=True)
+    profile_photo_url = serializers.SerializerMethodField()
+    preferences = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'full_name', 'role',
-            'is_active', 'is_verified', 'date_joined', 'last_login',
-            'student_profile', 'checker_profile'
+            'profile_photo', 'profile_photo_url', 'is_active', 'is_verified',
+            'date_joined', 'last_login', 'student_profile', 'checker_profile',
+            'preferences'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login', 'role']
+
+    def get_profile_photo_url(self, obj):
+        request = self.context.get('request')
+        if not obj.profile_photo:
+            return None
+        url = obj.profile_photo.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_preferences(self, obj):
+        preferences, _ = UserPreference.objects.get_or_create(user=obj)
+        return UserPreferenceSerializer(preferences).data
+
+
+class UserPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPreference
+        fields = [
+            'language', 'timezone', 'email_notifications', 'sms_notifications',
+            'push_notifications', 'marketing_notifications', 'updated_at'
+        ]
+        read_only_fields = ['updated_at']
+
+
+class ProfilePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['profile_photo']
+
+
+class ChangeEmailSerializer(serializers.Serializer):
+    new_email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+
+    def validate_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Password is incorrect.')
+        return value
+
+    def validate_new_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Email is already in use.')
+        return value
+
+
+class UserSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSession
+        fields = [
+            'id', 'ip_address', 'user_agent', 'device_label',
+            'created_at', 'last_seen_at', 'revoked_at', 'is_active'
+        ]
 
 
 class RoleSerializer(serializers.ModelSerializer):

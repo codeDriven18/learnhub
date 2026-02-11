@@ -68,6 +68,26 @@ export default function CheckerApplicationReview() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status History</h2>
+        <div className="space-y-2">
+          {application?.status_history?.length ? (
+            application.status_history.map((item: any) => (
+              <div key={item.id} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+                <span>
+                  {item.from_status} → {item.to_status}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {item.changed_by_name || 'System'} · {new Date(item.changed_at).toLocaleString()}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No status updates yet.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Documents</h2>
         <div className="space-y-3">
           {documents?.results?.map((doc: any) => (
@@ -77,6 +97,16 @@ export default function CheckerApplicationReview() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{doc.document_type_display}</p>
               </div>
               <div className="flex gap-2">
+                {doc.file_url && (
+                  <a
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-3 py-1 rounded-lg"
+                  >
+                    Download
+                  </a>
+                )}
                 <button
                   onClick={() => verifyDocMutation.mutate({ docId: doc.id, status: 'VERIFIED' })}
                   className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg"

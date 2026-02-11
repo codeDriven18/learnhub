@@ -8,6 +8,7 @@ import {
   ChatBubbleLeftRightIcon,
   AcademicCapIcon,
   ChartBarIcon,
+  Cog6ToothIcon,
   BellIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
@@ -27,6 +28,7 @@ export default function StudentLayout() {
     { name: 'Messages', href: '/student/messages', icon: ChatBubbleLeftRightIcon },
     { name: 'Study Hub', href: '/student/study-hub', icon: AcademicCapIcon },
     { name: 'QS Rankings', href: '/student/rankings', icon: ChartBarIcon },
+    { name: 'Settings', href: '/student/settings', icon: Cog6ToothIcon },
     { name: 'Profile', href: '/student/profile', icon: UserIcon },
   ];
 

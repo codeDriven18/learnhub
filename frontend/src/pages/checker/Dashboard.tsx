@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from 'react-query';
-import { applicationsAPI } from '@/api/client';
+import { applicationsAPI, notificationsAPI, reviewsAPI } from '@/api/client';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ClipboardDocumentListIcon,
@@ -20,77 +20,53 @@ export default function CheckerDashboard() {
     applicationsAPI.list().then((res) => res.data)
   );
 
+  const { data: reviews } = useQuery('checker-reviews', () =>
+    reviewsAPI.list().then((res) => res.data)
+  );
+
+  const { data: notifications } = useQuery('checker-notifications', () =>
+    notificationsAPI.list().then((res) => res.data)
+  );
+
+  const assignedCount = applications?.results?.length || 0;
+  const completedReviews = reviews?.results?.filter((r: any) => r.is_complete).length || 0;
+  const pendingReviews = reviews?.results?.filter((r: any) => !r.is_complete).length || 0;
+  const averageScore = reviews?.results?.length
+    ? (
+        reviews.results.reduce((sum: number, r: any) => sum + (r.overall_score || 0), 0) /
+        reviews.results.length
+      ).toFixed(1)
+    : '0.0';
+
   const stats = [
     {
       name: 'Assigned to Me',
-      value: '12',
+      value: assignedCount.toString(),
       icon: ClipboardDocumentListIcon,
       color: 'bg-blue-500',
-      change: '+3 new',
+      change: `${assignedCount} active`,
     },
     {
       name: 'Completed Reviews',
-      value: '48',
+      value: completedReviews.toString(),
       icon: CheckCircleIcon,
       color: 'bg-green-500',
-      change: '+5 this week',
+      change: `${completedReviews} total`,
     },
     {
       name: 'Pending Reviews',
-      value: '8',
+      value: pendingReviews.toString(),
       icon: ClockIcon,
       color: 'bg-yellow-500',
-      change: '2 urgent',
+      change: `${pendingReviews} pending`,
     },
     {
       name: 'Average Score',
-      value: '8.4',
+      value: averageScore,
       icon: StarIcon,
       color: 'bg-purple-500',
-      change: '+0.3',
+      change: 'Live average',
     },
-  ];
-
-  const mockAssignedApplications = [
-    {
-      id: 1,
-      student: 'John Doe',
-      program: 'Computer Science',
-      submitted: '2 days ago',
-      priority: 'high',
-      stage: 'Document Review',
-      progress: 60,
-    },
-    {
-      id: 2,
-      student: 'Jane Smith',
-      program: 'Engineering',
-      submitted: '5 days ago',
-      priority: 'medium',
-      stage: 'Essay Review',
-      progress: 40,
-    },
-    {
-      id: 3,
-      student: 'Mike Johnson',
-      program: 'Business',
-      submitted: '1 day ago',
-      priority: 'urgent',
-      stage: 'Initial Review',
-      progress: 20,
-    },
-  ];
-
-  const recentActivities = [
-    { id: 1, action: 'Completed review', student: 'Alice Brown', time: '1 hour ago' },
-    { id: 2, action: 'Document verified', student: 'Bob Wilson', time: '3 hours ago' },
-    { id: 3, action: 'Feedback submitted', student: 'Carol Davis', time: '5 hours ago' },
-  ];
-
-  const upcomingDeadlines = [
-    { id: 1, student: 'John Doe', deadline: 'Feb 12, 2026', daysLeft: 4 },
-    { id: 2, student: 'Jane Smith', deadline: 'Feb 15, 2026', daysLeft: 7 },
-    { id: 3, student: 'Mike Johnson', deadline: 'Feb 10, 2026', daysLeft: 2 },
   ];
 
   const statusStageMap: Record<string, string> = {
@@ -134,7 +110,7 @@ export default function CheckerDashboard() {
 
   const rawApplications = applications?.results?.length
     ? applications.results.map(mapApplication)
-    : mockAssignedApplications;
+    : [];
 
   const filteredApplications = useMemo(() => {
     switch (filter) {
@@ -151,7 +127,7 @@ export default function CheckerDashboard() {
     }
   }, [filter, rawApplications]);
 
-  const displayApplications = filteredApplications.slice(0, 3);
+  const displayApplications = filteredApplications.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -164,17 +140,17 @@ export default function CheckerDashboard() {
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">12</p>
+              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">{assignedCount}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Active</p>
             </div>
             <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">48</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{completedReviews}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
             </div>
             <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">8</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{pendingReviews}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
             </div>
           </div>
@@ -272,15 +248,19 @@ export default function CheckerDashboard() {
               Deadlines
             </h2>
             <div className="space-y-3">
-              {upcomingDeadlines.map((item) => (
-                <div key={item.id} className="border-l-4 border-red-500 dark:border-red-400 pl-3 py-2">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{item.student}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.deadline}</p>
-                  <p className="text-xs font-semibold text-red-600 dark:text-red-400 mt-1">
-                    {item.daysLeft} days left
-                  </p>
-                </div>
-              ))}
+              {displayApplications.length ? (
+                displayApplications.slice(0, 3).map((item: any) => (
+                  <div key={item.id} className="border-l-4 border-red-500 dark:border-red-400 pl-3 py-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.student}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.program}</p>
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 mt-1">
+                      {item.stage}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No assigned applications.</p>
+              )}
             </div>
           </div>
 
@@ -292,21 +272,21 @@ export default function CheckerDashboard() {
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-primary-100">This Week</span>
-                <span className="font-bold">12 reviews</span>
+                <span className="text-sm text-primary-100">Assigned</span>
+                <span className="font-bold">{assignedCount} reviews</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-primary-100">This Month</span>
-                <span className="font-bold">48 reviews</span>
+                <span className="text-sm text-primary-100">Completed</span>
+                <span className="font-bold">{completedReviews} reviews</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-primary-100">Avg. Time</span>
-                <span className="font-bold">2.5 hours</span>
+                <span className="text-sm text-primary-100">Pending</span>
+                <span className="font-bold">{pendingReviews} reviews</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-primary-100">Rating</span>
+                <span className="text-sm text-primary-100">Avg. Score</span>
                 <span className="font-bold flex items-center">
-                  4.8 <StarIcon className="h-4 w-4 ml-1" />
+                  {averageScore} <StarIcon className="h-4 w-4 ml-1" />
                 </span>
               </div>
             </div>
@@ -327,7 +307,8 @@ export default function CheckerDashboard() {
               </Link>
             </div>
             <div className="space-y-4">
-              {displayApplications.map((app) => (
+              {displayApplications.length ? (
+                displayApplications.map((app) => (
                 <div
                   key={app.id}
                   className="border dark:border-gray-700 rounded-lg p-5 hover:shadow-md transition-shadow"
@@ -372,7 +353,10 @@ export default function CheckerDashboard() {
                     ></div>
                   </div>
                 </div>
-              ))}
+              ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No applications to review.</p>
+              )}
             </div>
           </div>
 
@@ -380,19 +364,24 @@ export default function CheckerDashboard() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
             <div className="space-y-3">
-              {recentActivities.map((activity) => (
+              {notifications?.results?.slice(0, 5).map((activity: any) => (
                 <div
                   key={activity.id}
                   className="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.action}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{activity.student}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{activity.message}</p>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(activity.created_at).toLocaleString()}
+                  </span>
                 </div>
               ))}
+              {!notifications?.results?.length && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>
+              )}
             </div>
           </div>
 
@@ -403,18 +392,18 @@ export default function CheckerDashboard() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
             </div>
             <div className="space-y-3">
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 rounded">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">New Assignment</p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  3 new applications have been assigned to you
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 dark:border-yellow-400 rounded">
-                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-200">Deadline Reminder</p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  2 applications due for review in 2 days
-                </p>
-              </div>
+              {notifications?.results?.slice(0, 2).map((note: any) => (
+                <div
+                  key={note.id}
+                  className="p-3 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 rounded"
+                >
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200">{note.title}</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">{note.message}</p>
+                </div>
+              ))}
+              {!notifications?.results?.length && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p>
+              )}
             </div>
           </div>
         </div>

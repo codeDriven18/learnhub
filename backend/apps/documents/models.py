@@ -46,7 +46,7 @@ class Document(models.Model):
         upload_to=document_upload_path,
         validators=[
             FileExtensionValidator(
-                allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']
+                allowed_extensions=['pdf', 'jpg', 'jpeg', 'png']
             )
         ]
     )
@@ -57,6 +57,14 @@ class Document(models.Model):
     # Document details
     title = models.CharField(max_length=255, help_text="Document title/description")
     description = models.TextField(blank=True)
+
+    uploaded_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_documents'
+    )
     
     # Verification
     status = models.CharField(

@@ -42,7 +42,7 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         return DocumentSerializer
     
     def perform_create(self, serializer):
-        document = serializer.save()
+        document = serializer.save(uploaded_by=self.request.user)
         
         # Notify assigned checker if exists
         if document.application.assigned_checker:

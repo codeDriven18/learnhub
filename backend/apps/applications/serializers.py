@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Application, ApplicationTimeline, ApplicationStatus
+from .models import Application, ApplicationTimeline, ApplicationStatus, ApplicationStatusHistory
 
 
 class ApplicationTimelineSerializer(serializers.ModelSerializer):
@@ -10,6 +10,14 @@ class ApplicationTimelineSerializer(serializers.ModelSerializer):
         model = ApplicationTimeline
         fields = '__all__'
         read_only_fields = ['created_at']
+
+
+class ApplicationStatusHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.CharField(source='changed_by.full_name', read_only=True, allow_null=True)
+
+    class Meta:
+        model = ApplicationStatusHistory
+        fields = ['id', 'from_status', 'to_status', 'changed_by', 'changed_by_name', 'note', 'changed_at']
 
 
 class ApplicationListSerializer(serializers.ModelSerializer):
@@ -37,6 +45,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     stage_display = serializers.CharField(source='get_current_stage_display', read_only=True)
     timeline = ApplicationTimelineSerializer(many=True, read_only=True)
+    status_history = ApplicationStatusHistorySerializer(many=True, read_only=True)
     
     class Meta:
         model = Application

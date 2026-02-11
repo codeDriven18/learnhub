@@ -6,9 +6,10 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
+  sessionId: string | null;
   isAuthenticated: boolean;
   
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: User, accessToken: string, refreshToken: string, sessionId?: string) => void;
   setUser: (user: User) => void;
   logout: () => void;
 }
@@ -19,12 +20,16 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      sessionId: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) => {
+      setAuth: (user, accessToken, refreshToken, sessionId) => {
         localStorage.setItem('access_token', accessToken);
         localStorage.setItem('refresh_token', refreshToken);
-        set({ user, accessToken, refreshToken, isAuthenticated: true });
+        if (sessionId) {
+          localStorage.setItem('session_id', sessionId);
+        }
+        set({ user, accessToken, refreshToken, sessionId: sessionId || null, isAuthenticated: true });
       },
 
       setUser: (user) => set({ user }),
@@ -32,7 +37,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        localStorage.removeItem('session_id');
+        set({ user: null, accessToken: null, refreshToken: null, sessionId: null, isAuthenticated: false });
       },
     }),
     {

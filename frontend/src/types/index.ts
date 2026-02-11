@@ -6,10 +6,13 @@ export interface User {
   last_name: string;
   full_name: string;
   role: 'STUDENT' | 'CHECKER' | 'ADMIN';
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
   is_verified: boolean;
   date_joined: string;
   student_profile?: StudentProfile;
   checker_profile?: CheckerProfile;
+  preferences?: UserPreference;
 }
 
 export interface StudentProfile {
@@ -39,6 +42,27 @@ export interface CheckerProfile {
   total_reviews: number;
   active_reviews: number;
   is_available: boolean;
+}
+
+export interface UserPreference {
+  language: string;
+  timezone: string;
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  push_notifications: boolean;
+  marketing_notifications: boolean;
+  updated_at: string;
+}
+
+export interface UserSession {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  device_label?: string;
+  created_at: string;
+  last_seen_at: string;
+  revoked_at?: string | null;
+  is_active: boolean;
 }
 
 // Application Types
@@ -189,6 +213,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   access: string;
   refresh: string;
+  session_id?: string;
 }
 
 export interface RegisterRequest {

@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -95,6 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, db_index=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
+    profile_photo = models.ImageField(upload_to='profiles/', null=True, blank=True)
     role = models.ForeignKey(
         Role,
         on_delete=models.PROTECT,
@@ -202,3 +205,55 @@ class CheckerProfile(models.Model):
     
     def __str__(self):
         return f"Checker: {self.user.full_name}"
+
+
+class UserPreference(models.Model):
+    """User preferences for notifications and localization"""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
+
+    language = models.CharField(max_length=20, default='en')
+    timezone = models.CharField(max_length=50, default='UTC')
+
+    email_notifications = models.BooleanField(default=True)
+    sms_notifications = models.BooleanField(default=False)
+    push_notifications = models.BooleanField(default=True)
+    marketing_notifications = models.BooleanField(default=False)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_preferences'
+
+    def __str__(self):
+        return f"Preferences: {self.user.email}"
+
+
+class UserSession(models.Model):
+    """Track active user sessions for session management"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
+    refresh_jti = models.CharField(max_length=255, unique=True)
+    user_agent = models.TextField(blank=True)
+    ip_address = models.CharField(max_length=45, blank=True)
+    device_label = models.CharField(max_length=120, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'user_sessions'
+        ordering = ['-last_seen_at']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['refresh_jti']),
+        ]
+
+    def revoke(self):
+        self.is_active = False
+        self.revoked_at = timezone.now()
+        self.save(update_fields=['is_active', 'revoked_at'])

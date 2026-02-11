@@ -22,9 +22,8 @@ export default function StudentDashboard() {
     applicationsAPI.list().then((res) => res.data)
   );
 
-  // Fetch unread notifications count for future use
-  useQuery('unread-notifications', () =>
-    notificationsAPI.unreadCount().then((res) => res.data)
+  const { data: notifications } = useQuery('notifications', () =>
+    notificationsAPI.list().then((res) => res.data)
   );
 
   const stats = [
@@ -62,60 +61,17 @@ export default function StudentDashboard() {
     },
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'application',
-      title: 'Application submitted',
-      description: 'Computer Science Program - Fall 2026',
-      time: '2 hours ago',
-      icon: DocumentTextIcon,
-      color: 'text-blue-500',
-    },
-    {
-      id: 2,
-      type: 'document',
-      title: 'Document verified',
-      description: 'Transcript uploaded and verified',
-      time: '5 hours ago',
-      icon: CheckCircleIcon,
-      color: 'text-green-500',
-    },
-    {
-      id: 3,
-      type: 'notification',
-      title: 'Review in progress',
-      description: 'Your application is being reviewed',
-      time: '1 day ago',
-      icon: ClockIcon,
-      color: 'text-yellow-500',
-    },
-  ];
-
-  const upcomingDeadlines = [
-    {
-      id: 1,
-      title: 'Submit recommendation letters',
-      program: 'Computer Science - Fall 2026',
-      date: 'Feb 15, 2026',
-      daysLeft: 7,
-    },
-    {
-      id: 2,
-      title: 'Complete profile information',
-      program: 'General',
-      date: 'Feb 20, 2026',
-      daysLeft: 12,
-    },
-  ];
-
+  const latestApplication = applications?.results?.[0];
+  const status = latestApplication?.status;
   const applicationProgress = [
-    { stage: 'Profile', completed: true },
-    { stage: 'Documents', completed: true },
-    { stage: 'Essay', completed: false },
-    { stage: 'Recommendation', completed: false },
-    { stage: 'Review', completed: false },
+    { stage: 'Profile', completed: Boolean(user?.first_name && user?.last_name) },
+    { stage: 'Documents', completed: status && ['SUBMITTED', 'UNDER_REVIEW', 'PASSED', 'REJECTED', 'NEEDS_REVISION', 'FORWARDED_TO_QS'].includes(status) },
+    { stage: 'Essay', completed: status && ['UNDER_REVIEW', 'PASSED', 'REJECTED', 'NEEDS_REVISION', 'FORWARDED_TO_QS'].includes(status) },
+    { stage: 'Recommendation', completed: status && ['PASSED', 'REJECTED', 'FORWARDED_TO_QS'].includes(status) },
+    { stage: 'Review', completed: status && ['PASSED', 'REJECTED'].includes(status) },
   ];
+
+  const recentActivities = notifications?.results?.slice(0, 5) || [];
 
   return (
     <div className="space-y-6">
@@ -230,19 +186,25 @@ export default function StudentDashboard() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
             <div className="space-y-4">
-              {recentActivities.map((activity) => (
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity: any) => (
                 <div
                   key={activity.id}
                   className="flex items-start p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <activity.icon className={`h-6 w-6 ${activity.color} mt-0.5`} />
+                  <BellAlertIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mt-0.5" />
                   <div className="ml-4 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.description}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{activity.time}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.message}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {new Date(activity.created_at).toLocaleString()}
+                    </p>
                   </div>
                 </div>
-              ))}
+              ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>
+              )}
             </div>
           </div>
 
@@ -313,21 +275,20 @@ export default function StudentDashboard() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Deadlines</h2>
             </div>
             <div className="space-y-4">
-              {upcomingDeadlines.map((deadline) => (
-                <div
-                  key={deadline.id}
-                  className="border-l-4 border-primary-500 dark:border-primary-400 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded"
-                >
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{deadline.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{deadline.program}</p>
+              {latestApplication ? (
+                <div className="border-l-4 border-primary-500 dark:border-primary-400 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Application Status</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{latestApplication.program_name}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-300">{deadline.date}</span>
-                    <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                      {deadline.daysLeft} days left
+                    <span className="text-xs text-gray-600 dark:text-gray-300">{latestApplication.status_display}</span>
+                    <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
+                      Updated {new Date(latestApplication.updated_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No applications yet.</p>
+              )}
             </div>
           </div>
 
@@ -363,18 +324,18 @@ export default function StudentDashboard() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
             </div>
             <div className="space-y-3">
-              <div className="text-sm p-3 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 rounded">
-                <p className="font-medium text-blue-900 dark:text-blue-200">New message</p>
-                <p className="text-blue-700 dark:text-blue-300 text-xs mt-1">
-                  Your application review is complete
-                </p>
-              </div>
-              <div className="text-sm p-3 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 dark:border-green-400 rounded">
-                <p className="font-medium text-green-900 dark:text-green-200">Document approved</p>
-                <p className="text-green-700 dark:text-green-300 text-xs mt-1">
-                  Transcript has been verified
-                </p>
-              </div>
+              {notifications?.results?.slice(0, 2).map((note: any) => (
+                <div
+                  key={note.id}
+                  className="text-sm p-3 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 rounded"
+                >
+                  <p className="font-medium text-blue-900 dark:text-blue-200">{note.title}</p>
+                  <p className="text-blue-700 dark:text-blue-300 text-xs mt-1">{note.message}</p>
+                </div>
+              ))}
+              {!notifications?.results?.length && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p>
+              )}
             </div>
           </div>
 

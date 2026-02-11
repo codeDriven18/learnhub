@@ -13,7 +13,7 @@ export default function Login() {
 
   const loginMutation = useMutation(authAPI.login, {
     onSuccess: async (response) => {
-      const { access, refresh } = response.data;
+      const { access, refresh, session_id } = response.data;
       
       // Set tokens in localStorage first so axios interceptor can use them
       localStorage.setItem('access_token', access);
@@ -23,7 +23,7 @@ export default function Login() {
       const profileResponse = await authAPI.getProfile();
       const user = profileResponse.data;
       
-      setAuth(user, access, refresh);
+      setAuth(user, access, refresh, session_id);
       toast.success('Login successful!');
       
       // Redirect based on role

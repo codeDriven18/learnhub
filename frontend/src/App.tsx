@@ -19,6 +19,7 @@ import StudentProfile from './pages/student/Profile';
 import StudentMessages from './pages/student/Messages';
 import StudentStudyHub from './pages/student/StudyHub';
 import StudentRankings from './pages/student/Rankings';
+import StudentSettings from './pages/student/Settings';
 
 // Checker Pages
 import CheckerDashboard from './pages/checker/Dashboard';
@@ -79,6 +80,7 @@ function App() {
         <Route path="messages" element={<StudentMessages />} />
         <Route path="study-hub" element={<StudentStudyHub />} />
         <Route path="rankings" element={<StudentRankings />} />
+        <Route path="settings" element={<StudentSettings />} />
         <Route path="profile" element={<StudentProfile />} />
       </Route>
 
